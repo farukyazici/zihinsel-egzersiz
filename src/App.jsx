@@ -216,7 +216,7 @@ export default function DortIslemUygulamasi() {
         {/* Başlık */}
         <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-center justify-between print:hidden">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dört İşlem – 1’den 9’a</h1>
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <button
               onClick={() => setDark((d) => !d)}
               className="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm"
@@ -224,7 +224,7 @@ export default function DortIslemUygulamasi() {
             >
               {dark ? "Açık Mod" : "Karanlık Mod"}
             </button>
-          </div>
+          </div> */}
         </header>
 
         {/* İçerik */}
