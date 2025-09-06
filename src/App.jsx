@@ -1,85 +1,57 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-// Dört İşlem – 1’den 9’a (Mobil Uyumlu Egzersiz)
-// Tek dosya React bileşeni. Tailwind ile stillendi. 
-// Özellikler: Zorluk (Kolay/Orta/Zor/Karışık), zamanlayıcı, puan, seri, doğruluk,
-// renk kodlu işlemler, sayısal tuş takımı, yazdırılabilir çalışma kâğıdı, 
-// karanlık mod, yerel saklama (en iyi skor).
+/**
+ * Dört İşlem – 1’den 9’a (Açık Mod Kontrast Yükseltilmiş)
+ * Tailwind v3 + darkMode:"class"
+ */
 
-// Renk eşlemesi (Tailwind)
+// İşleme göre pastel–material vurgu paleti
 const OP_THEME = {
   "+": {
-    ring: "ring-blue-300",
-    badge: "bg-blue-100 text-blue-700 border-blue-300",
-    btn: "bg-blue-600 hover:bg-blue-700 text-white",
+    ring: "ring-[#9EC9FF]",
+    badge: "bg-[#EAF3FF] text-[#215E9E] border-[#CFE3FF]",
+    btn: "bg-[#3B82F6] hover:bg-[#2F74E8] text-[#F2F6FB]",
   },
   "-": {
-    ring: "ring-green-300",
-    badge: "bg-green-100 text-green-700 border-green-300",
-    btn: "bg-green-600 hover:bg-green-700 text-white",
+    ring: "ring-[#AEE1C6]",
+    badge: "bg-[#E9FAF3] text-[#1B6045] border-[#C9F0DD]",
+    btn: "bg-[#22C55E] hover:bg-[#19B354] text-[#F2F6FB]",
   },
   "×": {
-    ring: "ring-orange-300",
-    badge: "bg-orange-100 text-orange-700 border-orange-300",
-    btn: "bg-orange-600 hover:bg-orange-700 text-white",
+    ring: "ring-[#FFD6A6]",
+    badge: "bg-[#FFF3E6] text-[#8A5119] border-[#FFE3BF]",
+    btn: "bg-[#F59E0B] hover:bg-[#E28F05] text-[#FCFEFF]",
   },
   "÷": {
-    ring: "ring-purple-300",
-    badge: "bg-purple-100 text-purple-700 border-purple-300",
-    btn: "bg-purple-600 hover:bg-purple-700 text-white",
+    ring: "ring-[#D6C7FF]",
+    badge: "bg-[#F2EDFF] text-[#5A3CA8] border-[#E2D9FF]",
+    btn: "bg-[#8B5CF6] hover:bg-[#7B4BEA] text-[#F7F9FF]",
   },
 };
 
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function pickOne(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
+// Utils
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function buildAllowedOps(difficulty, customOps) {
   if (customOps && customOps.length) return customOps;
   switch (difficulty) {
-    case "kolay":
-      return ["+", "-"];
-    case "orta":
-      return ["+", "-", "×"];
-    case "zor":
-      return ["+", "-", "×", "÷"];
-    case "karışık":
-    default:
-      return ["+", "-", "×", "÷"];
+    case "kolay": return ["+", "-"];
+    case "orta": return ["+", "-", "×"];
+    case "zor": return ["+", "-", "×", "÷"];
+    default: return ["+", "-", "×", "÷"];
   }
 }
-
 function generateQuestion({ difficulty, customOps }) {
   const allowed = buildAllowedOps(difficulty, customOps);
   const op = pickOne(allowed);
-  let a = randInt(1, 9);
-  let b = randInt(1, 9);
+  let a = randInt(1, 9), b = randInt(1, 9);
   let displayA = a, displayB = b, answer = 0;
-
-  if (op === "+") {
-    answer = a + b;
-  } else if (op === "-") {
-    // Negatifi engelle: büyük olan başa
-    if (b > a) [a, b] = [b, a];
-    displayA = a; displayB = b; answer = a - b;
-  } else if (op === "×") {
-    answer = a * b;
-  } else if (op === "÷") {
-    // Tam bölünebilirlik için: (a*b) ÷ a = b
-    const x = randInt(1, 9);
-    const y = randInt(1, 9);
-    displayA = x * y; // dividend
-    displayB = x;     // divisor
-    answer = y;       // quotient (1..9)
-  }
-
+  if (op === "+") answer = a + b;
+  else if (op === "-") { if (b > a) [a, b] = [b, a]; displayA=a; displayB=b; answer=a-b; }
+  else if (op === "×") answer = a * b;
+  else { const x = randInt(1, 9), y = randInt(1, 9); displayA=x*y; displayB=x; answer=y; }
   return { a: displayA, b: displayB, op, answer };
 }
-
 function useInterval(callback, delay, enabled) {
   const savedRef = useRef(callback);
   useEffect(() => { savedRef.current = callback; });
@@ -89,15 +61,26 @@ function useInterval(callback, delay, enabled) {
     return () => clearInterval(id);
   }, [delay, enabled]);
 }
-
-function statKey(diff, secs) {
-  return `dortislem_best_${diff}_${secs}`;
-}
+function statKey(diff, secs) { return `dortislem_best_${diff}_${secs}`; }
 
 export default function DortIslemUygulamasi() {
-  const [dark, setDark] = useState(true);
+  // Tema
+  const getInitialTheme = () => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark" || saved === "light") return saved;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  };
+  const [theme, setTheme] = useState(getInitialTheme);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") root.classList.add("dark");
+    else root.classList.remove("dark");
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  // Oyun state
   const [difficulty, setDifficulty] = useState("kolay");
-  const [customOps, setCustomOps] = useState([]); // elle seçilen işlemler
+  const [customOps, setCustomOps] = useState([]);
   const [seconds, setSeconds] = useState(60);
   const [running, setRunning] = useState(false);
 
@@ -108,32 +91,22 @@ export default function DortIslemUygulamasi() {
   const [streak, setStreak] = useState(0);
   const [timeLeft, setTimeLeft] = useState(seconds);
   const [shake, setShake] = useState(false);
-  const [showSheet, setShowSheet] = useState(false); // yazdırma sayfası
+  const [showSheet, setShowSheet] = useState(false);
 
   const bestKey = useMemo(() => statKey(difficulty, seconds), [difficulty, seconds]);
-  const [best, setBest] = useState(() => {
-    const v = localStorage.getItem(bestKey);
-    return v ? Number(v) : 0;
-  });
-
-  useEffect(() => {
-    setBest(() => {
-      const v = localStorage.getItem(bestKey);
-      return v ? Number(v) : 0;
-    });
-  }, [bestKey]);
+  const [best, setBest] = useState(() => Number(localStorage.getItem(bestKey) || 0));
+  useEffect(() => { setBest(Number(localStorage.getItem(bestKey) || 0)); }, [bestKey]);
 
   // Sayaç
-  useEffect(() => { setTimeLeft(seconds); }, [seconds]);
+  useEffect(() => setTimeLeft(seconds), [seconds]);
   useInterval(() => {
     setTimeLeft((t) => {
       if (t <= 1) {
         setRunning(false);
-        // rekoru kaydet
         setBest((prev) => {
-          const newBest = Math.max(prev, score);
-          localStorage.setItem(bestKey, String(newBest));
-          return newBest;
+          const nb = Math.max(prev, score);
+          localStorage.setItem(bestKey, String(nb));
+          return nb;
         });
         return 0;
       }
@@ -141,51 +114,34 @@ export default function DortIslemUygulamasi() {
     });
   }, 1000, running);
 
-  const opsInUse = useMemo(() => buildAllowedOps(difficulty, customOps), [difficulty, customOps]);
-  const theme = OP_THEME[q.op];
+  const themeColors = OP_THEME[q.op];
   const accuracy = score + wrong === 0 ? 100 : Math.round((score / (score + wrong)) * 100);
 
-  function nextQuestion() {
-    setQ(generateQuestion({ difficulty, customOps }));
-    setInput("");
-  }
-
+  function nextQuestion() { setQ(generateQuestion({ difficulty, customOps })); setInput(""); }
   function start() {
     setScore(0); setWrong(0); setStreak(0);
     setTimeLeft(seconds); setRunning(true);
-    setQ(generateQuestion({ difficulty, customOps }));
-    setShowSheet(false);
+    setQ(generateQuestion({ difficulty, customOps })); setShowSheet(false);
   }
-
   function stop() {
     setRunning(false);
     setBest((prev) => {
-      const newBest = Math.max(prev, score);
-      localStorage.setItem(bestKey, String(newBest));
-      return newBest;
+      const nb = Math.max(prev, score);
+      localStorage.setItem(bestKey, String(nb));
+      return nb;
     });
   }
-
   function checkAnswer() {
     const val = Number(input);
     if (Number.isNaN(val)) return;
-    if (val === q.answer) {
-      setScore((s) => s + 1);
-      setStreak((s) => s + 1);
-      nextQuestion();
-    } else {
-      setWrong((w) => w + 1);
-      setStreak(0);
-      // salla animasyonu
-      setShake(true);
-      setTimeout(() => setShake(false), 220);
-    }
+    if (val === q.answer) { setScore((s) => s + 1); setStreak((s) => s + 1); nextQuestion(); }
+    else { setWrong((w) => w + 1); setStreak(0); setShake(true); setTimeout(() => setShake(false), 220); }
   }
 
-  // Klavye kısayolları
+  // Klavye
   useEffect(() => {
     function onKey(e) {
-      if (showSheet) return; // yazdırma görünümünde giriş yok
+      if (showSheet) return;
       if (e.key === "Enter") return checkAnswer();
       if (e.key === "Backspace") return setInput((s) => s.slice(0, -1));
       if (/^[0-9]$/.test(e.key)) setInput((s) => (s + e.key).slice(0, 3));
@@ -194,37 +150,32 @@ export default function DortIslemUygulamasi() {
     return () => window.removeEventListener("keydown", onKey);
   }, [checkAnswer, showSheet]);
 
-  // Çalışma kâğıdı (yazdırma) için veri
+  // Çalışma kâğıdı
   const [sheetCount, setSheetCount] = useState(30);
   const [sheetOps, setSheetOps] = useState(["+", "-", "×", "÷"]);
   const sheetItems = useMemo(() => {
     if (!showSheet) return [];
     const items = [];
     for (let i = 0; i < sheetCount; i++) {
-      const it = generateQuestion({ difficulty: "karışık", customOps: sheetOps });
-      items.push(it);
+      items.push(generateQuestion({ difficulty: "karışık", customOps: sheetOps }));
     }
     return items;
   }, [showSheet, sheetCount, sheetOps]);
 
-  const containerClass = dark ? "dark" : "";
-
   return (
-    <div className={`${containerClass} min-h-screen print:bg-white`}>
-      {/* Ana arka plan */}
-      <div className="bg-zinc-50 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 min-h-screen print:bg-white print:text-black">
+    <div className="min-h-screen print:bg-white">
+      {/* Açık mod: gri-200 (#E5E7EB) zemin; koyu mod sabit */}
+      <div className="bg-[#E5E7EB] text-[#111827] dark:bg-[#111418] dark:text-[#E8EAED] min-h-screen print:bg-white print:text-black">
         {/* Başlık */}
         <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-center justify-between print:hidden">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dört İşlem – 1’den 9’a</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setDark((d) => !d)}
-              className="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm"
-              aria-label="Karanlık modu değiştir"
-            >
-              {dark ? "Açık Mod" : "Karanlık Mod"}
-            </button>
-          </div>
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="px-3 py-1.5 rounded-xl border border-[#94A3B8] dark:border-[#2B3038] bg-[#CBD5E1] dark:bg-[#20262D] hover:bg-[#94A3B8] dark:hover:bg-[#252B33] text-[#111827] dark:text-[#E8EAED] text-sm"
+            aria-label="Tema değiştir"
+          >
+            {theme === "dark" ? "Açık Mod" : "Karanlık Mod"}
+          </button>
         </header>
 
         {/* İçerik */}
@@ -244,8 +195,8 @@ export default function DortIslemUygulamasi() {
                   onClick={() => setDifficulty(d.k)}
                   className={`px-3 py-1.5 rounded-xl border text-sm ${
                     difficulty === d.k
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                      : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      ? "bg-[#2B3441] text-[#EAF0F6] dark:bg-[#EAF0F6] dark:text-[#1C242D]"
+                      : "bg-[#E5E7EB] dark:bg-[#1A2128] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#CBD5E1] dark:hover:bg-[#20272F] text-[#111827] dark:text-[#E8EAED]"
                   }`}
                 >
                   {d.t}
@@ -261,8 +212,8 @@ export default function DortIslemUygulamasi() {
                   onClick={() => setSeconds(s)}
                   className={`px-3 py-1.5 rounded-xl border text-sm ${
                     seconds === s
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                      : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      ? "bg-[#2B3441] text-[#EAF0F6] dark:bg-[#EAF0F6] dark:text-[#1C242D]"
+                      : "bg-[#E5E7EB] dark:bg-[#1A2128] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#CBD5E1] dark:hover:bg-[#20272F] text-[#111827] dark:text-[#E8EAED]"
                   }`}
                 >
                   {s}s
@@ -280,20 +231,17 @@ export default function DortIslemUygulamasi() {
                 return (
                   <button
                     key={sym}
-                    onClick={() => {
+                    onClick={() =>
                       setCustomOps((prev) => {
                         const has = prev.includes(sym);
-                        if (!prev.length) {
-                          // baştan özelleştirmeyi açıyoruz
-                          return has ? [] : [sym];
-                        }
+                        if (!prev.length) return has ? [] : [sym];
                         return has ? prev.filter((x) => x !== sym) : [...prev, sym];
-                      });
-                    }}
+                      })
+                    }
                     className={`px-3 py-1.5 rounded-xl border text-sm ${
                       active
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                        : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        ? "bg-[#2B3441] text-[#EAF0F6] dark:bg-[#EAF0F6] dark:text-[#1C242D]"
+                        : "bg-[#E5E7EB] dark:bg-[#1A2128] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#CBD5E1] dark:hover:bg-[#20272F] text-[#111827] dark:text-[#E8EAED]"
                     }`}
                     aria-pressed={active}
                   >
@@ -304,7 +252,7 @@ export default function DortIslemUygulamasi() {
               {customOps.length > 0 && (
                 <button
                   onClick={() => setCustomOps([])}
-                  className="ml-1 px-3 py-1.5 rounded-xl border text-sm bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  className="ml-1 px-3 py-1.5 rounded-xl border text-sm bg-[#CBD5E1] dark:bg-[#20262D] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#94A3B8] dark:hover:bg-[#252B33] text-[#111827] dark:text-[#E8EAED]"
                 >
                   Sıfırla
                 </button>
@@ -314,18 +262,12 @@ export default function DortIslemUygulamasi() {
 
           {/* Oyun Kartı */}
           <section className="mt-4 print:hidden">
-            <div
-              className={`rounded-2xl border shadow-sm p-4 sm:p-6 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 ${theme?.ring} ring-1`}
-            >
+            <div className={`rounded-2xl border shadow-sm p-4 sm:p-6 bg-white dark:bg-[#181C20] border-[#D1D5DB] dark:border-[#272B33] ${themeColors?.ring} ring-1`}>
               {/* Üst bilgi */}
               <div className="flex flex-wrap items-center gap-3 justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 rounded-full text-xs border ${theme?.badge}`}>
-                    İşlem: {q.op}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full text-xs border bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600">
-                    Zorluk: {difficulty}
-                  </span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs border ${themeColors?.badge}`}>İşlem: {q.op}</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs border bg-[#E5E7EB] dark:bg-[#232830] border-[#D1D5DB] dark:border-[#2B3038]">Zorluk: {difficulty}</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -348,37 +290,32 @@ export default function DortIslemUygulamasi() {
                 </div>
               </div>
 
-              {/* Soru Alanı */}
+              {/* Soru */}
               <div className="mt-6 flex flex-col items-center">
-                <div className={`text-5xl sm:text-6xl font-bold tracking-wide ${shake ? "animate-[wiggle_0.22s_ease-in-out]" : ""}`}
-                     style={{ fontVariantNumeric: "tabular-nums" }}>
-                  <style>{`
-                    @keyframes wiggle { 0% { transform: translateX(0); } 25% { transform: translateX(-6px);} 75% { transform: translateX(6px);} 100% { transform: translateX(0);} }
-                  `}</style>
+                <div
+                  className={`text-5xl sm:text-6xl font-bold tracking-wide ${shake ? "animate-[wiggle_0.22s_ease-in-out]" : ""}`}
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  <style>{`@keyframes wiggle{0%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}100%{transform:translateX(0)}}`}</style>
                   {q.a} <span className="opacity-70">{q.op}</span> {q.b} =
                 </div>
 
                 <input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className="mt-4 text-center w-full max-w-[220px] text-3xl font-semibold rounded-2xl border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-zinc-400"
+                  inputMode="numeric" pattern="[0-9]*"
+                  className="mt-4 text-center w-full max-w-[220px] text-3xl font-semibold rounded-2xl border border-[#D1D5DB] dark:border-[#2B3038] bg-white dark:bg-[#11161B] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-[#C9D7FF]"
                   value={input}
                   onChange={(e) => setInput(e.target.value.replace(/\D/g, "").slice(0, 3))}
-                  placeholder="Cevap"
-                  disabled={!running}
-                  aria-label="Cevap kutusu"
+                  placeholder="Cevap" disabled={!running} aria-label="Cevap kutusu"
                 />
 
                 {/* Tuş takımı */}
                 <div className="grid grid-cols-3 gap-2 mt-4 max-w-xs w-full">
                   {[1,2,3,4,5,6,7,8,9,0].map((n, idx) => (
                     <button
-                      key={n + "_key"}
+                      key={n+"_key"}
                       onClick={() => setInput((s) => (s + String(n)).slice(0, 3))}
                       disabled={!running}
-                      className={`${
-                        idx === 9 ? "col-span-3" : ""
-                      } rounded-xl py-3 text-lg font-semibold border bg-zinc-50 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-600 disabled:opacity-50`}
+                      className={`${idx===9?"col-span-3":""} rounded-xl py-3 text-lg font-semibold border bg-[#CBD5E1] dark:bg-[#20262D] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#94A3B8] dark:hover:bg-[#252B33] text-[#111827] dark:text-[#E8EAED] disabled:opacity-50`}
                     >
                       {n}
                     </button>
@@ -388,26 +325,32 @@ export default function DortIslemUygulamasi() {
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => setInput((s) => s.slice(0, -1))}
-                    className="px-4 py-2 rounded-xl border bg-zinc-50 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-600"
+                    className="px-4 py-2 rounded-xl border bg-[#CBD5E1] dark:bg-[#20262D] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#94A3B8] dark:hover:bg-[#252B33] text-[#111827] dark:text-[#E8EAED]"
                     disabled={!running}
-                  >Sil</button>
+                  >
+                    Sil
+                  </button>
                   <button
                     onClick={checkAnswer}
-                    className={`px-4 py-2 rounded-xl font-semibold ${theme?.btn}`}
+                    className={`px-4 py-2 rounded-xl font-semibold ${themeColors?.btn}`}
                     disabled={!running}
-                  >Onayla</button>
+                  >
+                    Onayla
+                  </button>
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-2 justify-center">
                   {!running ? (
-                    <button onClick={start} className="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">Başlat</button>
+                    <button onClick={start} className="px-4 py-2 rounded-xl font-semibold bg-[#10B981] hover:bg-[#0EA371] text-white">Başlat</button>
                   ) : (
-                    <button onClick={stop} className="px-4 py-2 rounded-xl font-semibold bg-rose-600 hover:bg-rose-700 text-white">Durdur</button>
+                    <button onClick={stop} className="px-4 py-2 rounded-xl font-semibold bg-[#EF4444] hover:bg-[#DC3B3B] text-white">Durdur</button>
                   )}
                   <button
                     onClick={() => { setShowSheet(true); setRunning(false); }}
-                    className="px-4 py-2 rounded-xl font-semibold bg-zinc-900 hover:bg-black text-white dark:bg-white dark:text-zinc-900"
-                  >Çalışma Kâğıdı</button>
+                    className="px-4 py-2 rounded-xl font-semibold bg-[#2B3441] hover:bg-[#242C37] text-[#EAF0F6] dark:bg-[#EAF0F6] dark:text-[#1C242D]"
+                  >
+                    Çalışma Kâğıdı
+                  </button>
                 </div>
 
                 {timeLeft === 0 && (
@@ -422,20 +365,22 @@ export default function DortIslemUygulamasi() {
           {/* Yazdırılabilir Çalışma Kâğıdı */}
           {showSheet && (
             <section className="mt-6">
-              <div className="rounded-2xl border shadow-sm p-4 sm:p-6 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+              <div className="rounded-2xl border shadow-sm p-4 sm:p-6 bg-white dark:bg-[#181C20] border-[#D1D5DB] dark:border-[#272B33]">
                 <div className="flex flex-wrap items-center gap-3 justify-between">
                   <h2 className="text-xl font-semibold">Çalışma Kâğıdı Oluştur</h2>
                   <div className="flex gap-2">
-                    <button onClick={() => window.print()} className="px-4 py-2 rounded-xl font-semibold bg-zinc-900 hover:bg-black text-white dark:bg-white dark:text-zinc-900">Yazdır</button>
-                    <button onClick={() => setShowSheet(false)} className="px-4 py-2 rounded-xl border bg-zinc-50 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-600">Geri</button>
+                    <button onClick={() => window.print()} className="px-4 py-2 rounded-xl font-semibold bg-[#2B3441] hover:bg-[#242C37] text-[#EAF0F6] dark:bg-[#EAF0F6] dark:text-[#1C242D]">Yazdır</button>
+                    <button onClick={() => setShowSheet(false)} className="px-4 py-2 rounded-xl border bg-[#CBD5E1] dark:bg-[#20262D] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#94A3B8] dark:hover:bg-[#252B33] text-[#111827] dark:text-[#E8EAED]">Geri</button>
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3 print:hidden">
                   <label className="text-sm">Soru sayısı:</label>
-                  <input type="number" min={6} max={120} value={sheetCount}
-                         onChange={(e) => setSheetCount(Math.max(6, Math.min(120, Number(e.target.value)||30)))}
-                         className="w-24 px-3 py-1.5 rounded-xl border bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600" />
+                  <input
+                    type="number" min={6} max={120} value={sheetCount}
+                    onChange={(e) => setSheetCount(Math.max(6, Math.min(120, Number(e.target.value) || 30)))}
+                    className="w-24 px-3 py-1.5 rounded-xl border bg-white dark:bg-[#11161B] border-[#D1D5DB] dark:border-[#2B3038]"
+                  />
 
                   <span className="text-sm">İşlemler:</span>
                   {["+","-","×","÷"].map((sym)=>{
@@ -443,11 +388,17 @@ export default function DortIslemUygulamasi() {
                     return (
                       <button key={sym}
                         onClick={() => setSheetOps((prev)=> prev.includes(sym) ? prev.filter(x=>x!==sym): [...prev, sym])}
-                        className={`px-3 py-1.5 rounded-xl border text-sm ${active?"bg-zinc-900 text-white dark:bg-white dark:text-zinc-900":"bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700"}`}
+                        className={`px-3 py-1.5 rounded-xl border text-sm ${
+                          active
+                            ? "bg-[#2B3441] text-[#EAF0F6] dark:bg-[#EAF0F6] dark:text-[#1C242D]"
+                            : "bg-[#E5E7EB] dark:bg-[#1A2128] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#CBD5E1] dark:hover:bg-[#20272F] text-[#111827] dark:text-[#E8EAED]"
+                        }`}
                       >{sym}</button>
                     )
                   })}
-                  <button onClick={()=> setSheetOps(["+","-","×","÷"]) } className="px-3 py-1.5 rounded-xl border text-sm bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700">Tümü</button>
+                  <button onClick={()=> setSheetOps(["+","-","×","÷"]) } className="px-3 py-1.5 rounded-xl border text-sm bg-[#CBD5E1] dark:bg-[#20262D] border-[#94A3B8] dark:border-[#2B3038] hover:bg-[#94A3B8] dark:hover:bg-[#252B33] text-[#111827] dark:text-[#E8EAED]">
+                    Tümü
+                  </button>
                 </div>
 
                 {/* Baskı başlığı */}
@@ -466,8 +417,7 @@ export default function DortIslemUygulamasi() {
                   {/* Soru ızgarası */}
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 print:grid-cols-3 print:gap-2">
                     {sheetItems.map((it, i) => (
-                      <div key={i}
-                        className="border border-zinc-300 print:border-black rounded-xl px-3 py-2 text-lg tracking-wide bg-white text-zinc-900">
+                      <div key={i} className="border border-[#D1D5DB] print:border-black rounded-xl px-3 py-2 text-lg tracking-wide bg-white text-[#111827]">
                         <div style={{ fontVariantNumeric: "tabular-nums" }} className="flex items-center justify-between gap-2">
                           <span className="opacity-70 tabular-nums">{String(i+1).padStart(2,"0")}.</span>
                           <span className="whitespace-nowrap">{it.a} {it.op} {it.b} = ________</span>
