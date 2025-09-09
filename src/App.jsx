@@ -128,6 +128,7 @@ export default function DortIslemUygulamasi(){
 
   const [q,setQ]=useState(()=>generateQuestion({difficulty}));
   const [input,setInput]=useState("");
+  const inputRef = useRef(null);
   const [score,setScore]=useState(0);
   const [wrong,setWrong]=useState(0);
   const [streak,setStreak]=useState(0);
@@ -161,6 +162,10 @@ export default function DortIslemUygulamasi(){
   const accuracy = (score+wrong===0) ? 100 : Math.round(score*100/(score+wrong));
 
   function nextQuestion(){ setQ(generateQuestion({difficulty,customOps})); setInput(""); }
+  // Soru değişince input otomatik odaklansın
+  useEffect(()=>{
+    if(inputRef.current) inputRef.current.focus();
+  },[q]);
   function start(){
     setScore(0); setWrong(0); setStreak(0); setTimeLeft(seconds); setRunning(true);
     setQ(generateQuestion({difficulty,customOps})); setShowSheet(false);
@@ -176,17 +181,7 @@ export default function DortIslemUygulamasi(){
     else { setWrong(w=>w+1); setStreak(0); setShake(true); setTimeout(()=>setShake(false),220); }
   }
 
-  // Klavye
-  useEffect(()=>{
-    function onKey(e){
-      if (showSheet) return;
-      if (e.key==="Enter") return checkAnswer();
-      if (e.key==="Backspace") return setInput(s=>s.slice(0,-1));
-      if (/^[0-9]$/.test(e.key)) setInput(s=>(s+e.key).slice(0,3));
-    }
-    window.addEventListener("keydown", onKey);
-    return ()=>window.removeEventListener("keydown", onKey);
-  },[checkAnswer, showSheet]);
+  // Klavye: sadece input'a özel onKeyDown ile yönetilecek
 
   // Çalışma kâğıdı
   const [sheetCount,setSheetCount]=useState(30);
@@ -395,12 +390,17 @@ export default function DortIslemUygulamasi(){
                 </div>
 
                 <input
+                  ref={inputRef}
                   inputMode="numeric" pattern="[0-9]*"
                   className="mt-4 text-center w-full max-w-[220px] text-3xl font-semibold rounded-2xl
                              border border-[var(--border)] bg-[var(--surface)]
                              px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
                   value={input}
                   onChange={e=>setInput(e.target.value.replace(/\D/g,"").slice(0,3))}
+                  onKeyDown={e=>{
+                    if (e.key==="Enter") { e.preventDefault(); checkAnswer(); }
+                    else if (e.key==="Backspace") { e.preventDefault(); setInput(s=>s.slice(0,-1)); }
+                  }}
                   placeholder="Cevap" disabled={!running} aria-label="Cevap kutusu"
                 />
 
