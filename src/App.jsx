@@ -122,7 +122,7 @@ export default function DortIslemUygulamasi(){
 
   // Oyun durumları
   const [difficulty,setDifficulty]=useState("kolay");
-  const [customOps,setCustomOps]=useState([]);
+  const [customOps,setCustomOps]=useState(["+","-","x","÷"]);
   const [seconds,setSeconds]=useState(60);
   const [running,setRunning]=useState(false);
 
