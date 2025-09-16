@@ -134,6 +134,7 @@ export default function DortIslemUygulamasi(){
   const [streak,setStreak]=useState(0);
   const [timeLeft,setTimeLeft]=useState(seconds);
   const [shake,setShake]=useState(false);
+  const [showCheck, setShowCheck] = useState(false);
   const [showSheet,setShowSheet]=useState(false);
 
   const bestKey = useMemo(()=>statKey(difficulty, seconds),[difficulty,seconds]);
@@ -177,7 +178,12 @@ export default function DortIslemUygulamasi(){
   function checkAnswer(){
     const val = Number(input);
     if (Number.isNaN(val)) return;
-    if (val===q.answer){ setScore(s=>s+1); setStreak(s=>s+1); nextQuestion(); }
+    if (val===q.answer){
+      setScore(s=>s+1); setStreak(s=>s+1);
+      setShowCheck(true);
+      setTimeout(()=>setShowCheck(false), 700);
+      nextQuestion();
+    }
     else { setWrong(w=>w+1); setStreak(0); setShake(true); setTimeout(()=>setShake(false),220); }
   }
 
@@ -380,7 +386,7 @@ export default function DortIslemUygulamasi(){
               </div>
 
               {/* Soru */}
-              <div className="mt-6 flex flex-col items-center">
+              <div className="mt-6 flex flex-col items-center relative">
                 <div
                   className={`text-5xl sm:text-6xl font-bold tracking-wide ${shake ? "animate-[wiggle_0.22s_ease-in-out]" : ""}`}
                   style={{ fontVariantNumeric: "tabular-nums" }}
@@ -388,6 +394,23 @@ export default function DortIslemUygulamasi(){
                   <style>{`@keyframes wiggle{0%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}100%{transform:translateX(0)}}`}</style>
                   {q.a} <span className="opacity-70">{q.op}</span> {q.b} =
                 </div>
+                {showCheck && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 animate-fadein pointer-events-none" />
+                    <span className="relative z-10 flex items-center justify-center">
+                      <svg width="80" height="80" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-checkmark">
+                        <circle cx="28" cy="28" r="26" stroke="#22C55E" strokeWidth="4" fill="white"/>
+                        <path d="M18 29L26 37L39 21" stroke="#22C55E" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </span>
+                    <style>{`
+                      @keyframes checkmark-pop {0%{transform:scale(0.7);opacity:0;} 40%{transform:scale(1.1);opacity:1;} 70%{transform:scale(0.95);} 100%{transform:scale(1);opacity:0;}}
+                      .animate-checkmark {animation: checkmark-pop 0.7s cubic-bezier(.4,2,.6,1) both;}
+                      @keyframes fadein {0%{opacity:0;} 100%{opacity:1;}}
+                      .animate-fadein {animation: fadein 0.2s;}
+                    `}</style>
+                  </div>
+                )}
 
                 <input
                   ref={inputRef}
