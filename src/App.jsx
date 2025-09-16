@@ -304,7 +304,12 @@ export default function DortIslemUygulamasi(){
         {/* Kullanıcı üst barı */}
         <div className="flex items-center justify-end max-w-4xl mx-auto px-4 pt-4 pb-1 gap-3">
           <img src={user.photoURL} alt="Profil" className="w-8 h-8 rounded-full border" />
-          <span className="font-medium text-sm">{user.displayName}</span>
+          <div className="flex flex-col items-end">
+            <span className="font-medium text-sm">{user.displayName}</span>
+            {cloudBest !== null && (
+              <span className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">High Score: <b>{cloudBest}</b></span>
+            )}
+          </div>
           <button
             onClick={handleLogout}
             className="ml-2 px-3 py-1.5 rounded border text-xs bg-gray-100 hover:bg-gray-200
