@@ -281,7 +281,13 @@ export default function DortIslemUygulamasi(){
         <div className="flex items-center justify-end max-w-4xl mx-auto px-4 pt-4 pb-1 gap-3">
           <img src={user.photoURL} alt="Profil" className="w-8 h-8 rounded-full border" />
           <span className="font-medium text-sm">{user.displayName}</span>
-          <button onClick={handleLogout} className="ml-2 px-3 py-1.5 rounded border text-xs bg-gray-100 hover:bg-gray-200">Çıkış</button>
+          <button
+            onClick={handleLogout}
+            className="ml-2 px-3 py-1.5 rounded border text-xs bg-gray-100 hover:bg-gray-200
+                       dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+          >
+            Çıkış
+          </button>
         </div>
         {/* Başlık */}
         <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-center justify-between print:hidden">
