@@ -1,3 +1,22 @@
+// Yardımcı: SVG pasta grafik için yay çizer
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return [
+    "M", start.x, start.y,
+    "A", r, r, 0, largeArcFlag, 0, end.x, end.y
+  ].join(" ");
+}
+
+function polarToCartesian(cx, cy, r, angleInDegrees) {
+  const angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+  return {
+    x: cx + (r * Math.cos(angleInRadians)),
+    y: cy + (r * Math.sin(angleInRadians))
+  };
+}
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -136,6 +155,7 @@ export default function DortIslemUygulamasi(){
   const [shake,setShake]=useState(false);
   const [showCheck, setShowCheck] = useState(false);
   const [showSheet,setShowSheet]=useState(false);
+  const [showResult, setShowResult] = useState(false);
 
   const bestKey = useMemo(()=>statKey(difficulty, seconds),[difficulty,seconds]);
   const [best,setBest]=useState(()=>Number(localStorage.getItem(bestKey)||0));
@@ -152,6 +172,7 @@ export default function DortIslemUygulamasi(){
           localStorage.setItem(bestKey,String(nb));
           return nb;
         });
+        setTimeout(()=>setShowResult(true), 400);
         return 0;
       }
       return t-1;
@@ -174,6 +195,7 @@ export default function DortIslemUygulamasi(){
   function stop(){
     setRunning(false);
     setBest(prev=>{ const nb=Math.max(prev,score); localStorage.setItem(bestKey,String(nb)); return nb; });
+    setTimeout(()=>setShowResult(true), 400);
   }
   function checkAnswer(){
     const val = Number(input);
@@ -493,11 +515,66 @@ export default function DortIslemUygulamasi(){
                   </button>
                 </div>
 
-                {timeLeft===0 && (
-                  <div className="mt-4 text-center text-sm opacity-80">
-                    Süre bitti. Puanınız: <b>{score}</b> – En iyi: <b>{best}</b>
-                  </div>
+                {/* Sonuç ekranı artık modal ile gösterilecek */}
+      {/* Sonuç Modalı */}
+      {showResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white dark:bg-[#181A1F] rounded-2xl shadow-xl p-7 max-w-xs w-full text-center relative animate-fadein">
+            <button onClick={()=>setShowResult(false)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xl">×</button>
+            <div className="mb-2 text-lg font-bold">Süre Bitti!</div>
+            <div className="flex flex-col items-center gap-2 mb-4">
+              {/* Basit pasta grafik */}
+              <svg width="90" height="90" viewBox="0 0 36 36" className="mb-1">
+                <circle cx="18" cy="18" r="16" fill="#F3F4F6" />
+                {/* Pasta grafik: doğru oranı yeşil, yanlış oranı kırmızı */}
+                {score+wrong > 0 && (
+                  <>
+                    {/* Tamamen doğruysa tam yeşil daire */}
+                    {score > 0 && wrong === 0 && (
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="#22C55E" strokeWidth="3.5" />
+                    )}
+                    {/* Tamamen yanlışsa tam kırmızı daire */}
+                    {wrong > 0 && score === 0 && (
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="#EF4444" strokeWidth="3.5" />
+                    )}
+                    {/* Karışık ise path ile pasta */}
+                    {score > 0 && wrong > 0 && (
+                      <>
+                        <path
+                          d={describeArc(18, 18, 16, 0, (score/(score+wrong))*360)}
+                          fill="none"
+                          stroke="#22C55E"
+                          strokeWidth="3.5"
+                        />
+                        <path
+                          d={describeArc(18, 18, 16, (score/(score+wrong))*360, 360)}
+                          fill="none"
+                          stroke="#EF4444"
+                          strokeWidth="3.5"
+                        />
+                      </>
+                    )}
+                  </>
                 )}
+                <text x="18" y="22" textAnchor="middle" fontSize="1.1em" fill="#222" fontWeight="bold">{score}</text>
+              </svg>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Doğru / Yanlış</div>
+            </div>
+            <div className="flex flex-col gap-1 text-sm mb-2">
+              <div><b>Puan:</b> {score}</div>
+              <div><b>Yanlış:</b> {wrong}</div>
+              <div><b>Toplam Soru:</b> {score+wrong}</div>
+              <div><b>Doğruluk:</b> %{accuracy}</div>
+              <div><b>En İyi Skor:</b> {best}</div>
+            </div>
+            <button onClick={()=>{setShowResult(false);start();}} className="mt-2 px-4 py-2 rounded-xl font-semibold bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white">Tekrar Oyna</button>
+          </div>
+          <style>{`
+            @keyframes fadein {0%{opacity:0;} 100%{opacity:1;}}
+            .animate-fadein {animation: fadein 0.2s;}
+          `}</style>
+        </div>
+      )}
               </div>
             </div>
           </section>
