@@ -307,7 +307,7 @@ export default function DortIslemUygulamasi(){
           <div className="flex flex-col items-end">
             <span className="font-medium text-sm">{user.displayName}</span>
             {cloudBest !== null && (
-              <span className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">High Score: <b>{cloudBest}</b></span>
+              <span className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">Yüksek Skor: <b>{cloudBest}</b></span>
             )}
           </div>
           <button
