@@ -20,6 +20,7 @@ function polarToCartesian(cx, cy, r, angleInDegrees) {
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { auth, provider } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { getUserBest, setUserBest } from "./firestore";
 
 /**
  * Dört İşlem – 1’den 9’a
@@ -175,6 +176,14 @@ export default function DortIslemUygulamasi(){
   const [best,setBest]=useState(()=>Number(localStorage.getItem(bestKey)||0));
   useEffect(()=>{ setBest(Number(localStorage.getItem(bestKey)||0)); },[bestKey]);
 
+  // Firestore rekor puan
+  const [cloudBest, setCloudBest] = useState(null);
+  useEffect(() => {
+    if (user) {
+      getUserBest(user.uid).then(setCloudBest);
+    }
+  }, [user, showResult]);
+
   // Sayaç
   useEffect(()=>setTimeLeft(seconds),[seconds]);
   useInterval(()=>{
@@ -184,6 +193,11 @@ export default function DortIslemUygulamasi(){
         setBest(prev=>{
           const nb=Math.max(prev,score);
           localStorage.setItem(bestKey,String(nb));
+          // Cloud rekor güncelle
+          if (user && (cloudBest === null || score > cloudBest)) {
+            setUserBest(user.uid, score);
+            setCloudBest(score);
+          }
           return nb;
         });
         setTimeout(()=>setShowResult(true), 400);
@@ -208,7 +222,17 @@ export default function DortIslemUygulamasi(){
   }
   function stop(){
     setRunning(false);
-    setBest(prev=>{ const nb=Math.max(prev,score); localStorage.setItem(bestKey,String(nb)); return nb; });
+    setBest(prev=>{
+      const nb=Math.max(prev,score);
+      localStorage.setItem(bestKey,String(nb));
+      // Cloud rekor güncelle
+      if (user && (cloudBest === null || score > cloudBest)) {
+        setUserBest(user.uid, score).then(() => {
+          getUserBest(user.uid).then(setCloudBest);
+        });
+      }
+      return nb;
+    });
     setTimeout(()=>setShowResult(true), 400);
   }
   function checkAnswer(){
@@ -602,6 +626,7 @@ export default function DortIslemUygulamasi(){
               <div><b>Toplam Soru:</b> {score+wrong}</div>
               <div><b>Doğruluk:</b> %{accuracy}</div>
               <div><b>En İyi Skor:</b> {best}</div>
+              {cloudBest !== null && <div><b>Bulut Rekoru:</b> {cloudBest}</div>}
             </div>
             <button onClick={()=>{setShowResult(false);start();}} className="mt-2 px-4 py-2 rounded-xl font-semibold bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white">Tekrar Oyna</button>
           </div>
