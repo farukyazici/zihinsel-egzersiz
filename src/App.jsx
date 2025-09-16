@@ -18,6 +18,8 @@ function polarToCartesian(cx, cy, r, angleInDegrees) {
 }
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { auth, provider } from "./firebase";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 
 /**
  * Dört İşlem – 1’den 9’a
@@ -126,6 +128,18 @@ function useInterval(cb, delay, enabled){
 function statKey(diff, secs){ return `dortislem_best_${diff}_${secs}`; }
 
 export default function DortIslemUygulamasi(){
+  // Google Auth durumları
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+  const handleLogin = () => signInWithPopup(auth, provider);
+  const handleLogout = () => signOut(auth);
   // Tema
   const getInitialTheme = () => {
     const saved = localStorage.getItem("theme");
@@ -245,14 +259,30 @@ export default function DortIslemUygulamasi(){
     "--badge-text": scheme.badgeText,
   };
 
+  // UX: Giriş kontrolü
+  if (loading) return <div className="flex items-center justify-center min-h-screen text-lg">Yükleniyor...</div>;
+  if (!user) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--page)] text-[var(--text)]">
+      <button onClick={handleLogin} className="flex items-center gap-2 px-5 py-3 rounded-xl border border-gray-300 bg-white shadow hover:bg-gray-50 text-base font-medium">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+        Google ile Giriş
+      </button>
+      <p className="mt-4 text-gray-500 text-sm">Giriş yaparak ilerlemeniz ve rozetleriniz bulutta saklanır.</p>
+    </div>
+  );
+  // Giriş yapılmışsa ana uygulama:
   return (
     <div className="min-h-screen print:bg-white">
-      {/* Tüm sayfa: operasyona göre boyanan zemin */}
       <div
         style={cssVars}
-        className="min-h-screen print:bg-white print:text-black
-                   bg-[var(--page)] text-[var(--text)] dark:text-[var(--text)]"
+        className="min-h-screen print:bg-white print:text-black bg-[var(--page)] text-[var(--text)] dark:text-[var(--text)]"
       >
+        {/* Kullanıcı üst barı */}
+        <div className="flex items-center justify-end max-w-4xl mx-auto px-4 pt-4 pb-1 gap-3">
+          <img src={user.photoURL} alt="Profil" className="w-8 h-8 rounded-full border" />
+          <span className="font-medium text-sm">{user.displayName}</span>
+          <button onClick={handleLogout} className="ml-2 px-3 py-1.5 rounded border text-xs bg-gray-100 hover:bg-gray-200">Çıkış</button>
+        </div>
         {/* Başlık */}
         <header className="max-w-4xl mx-auto px-4 pt-6 pb-2 flex items-center justify-between print:hidden">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dört İşlem – 1’den 9’a</h1>
